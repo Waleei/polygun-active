@@ -1,0 +1,6 @@
+python-telegram-bot[job-queue]
+solders
+solana
+cryptography
+aiohttp
+mnemonic
